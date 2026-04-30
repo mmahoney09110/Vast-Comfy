@@ -38,6 +38,7 @@ from vastai import (
     WorkerConfig,
     HandlerConfig,
     LogActionConfig,
+    BenchmarkConfig,
 )
 
 # ---------------------------------------------------------------------------
@@ -340,6 +341,18 @@ async def handler(payload: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Ping benchmark — required by vastai SDK but does no real work
+# No images generated, no S3 uploads, just a fast no-op to satisfy the SDK
+# ---------------------------------------------------------------------------
+import time
+
+def ping_generator() -> dict:
+    return {"ping": True, "ts": time.time()}
+
+async def ping_remote(**params):
+    return {"ok": True}
+
+# ---------------------------------------------------------------------------
 # Vast Worker config
 # ---------------------------------------------------------------------------
 worker_config = WorkerConfig(
@@ -348,13 +361,27 @@ worker_config = WorkerConfig(
     model_log_file=MODEL_LOG_FILE,
 
     handlers=[
+        # Lightweight ping benchmark — satisfies SDK requirement, no junk images
+        HandlerConfig(
+            route="/benchmark/ping",
+            allow_parallel_requests=True,
+            max_queue_time=0.0,
+            benchmark_config=BenchmarkConfig(
+                generator=ping_generator,
+                runs=1,
+                concurrency=1,
+                do_warmup=False,
+            ),
+            remote_function=ping_remote,
+        ),
+        # Main generation handler
         HandlerConfig(
             route="/generate/sync",
             allow_parallel_requests=False,   # ComfyUI is single-queue
             max_queue_time=0.0,              # Reject immediately if busy → Vast re-routes
             workload_calculator=lambda _: 100.0,
-            benchmark_config=None,           # No benchmark = no junk images
-            remote_function=handler,         # Our async handler
+            benchmark_config=None,
+            remote_function=handler,
         ),
     ],
 
