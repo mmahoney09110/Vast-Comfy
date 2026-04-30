@@ -222,7 +222,7 @@ async def fetch_image(session: aiohttp.ClientSession, filename: str, subfolder: 
 # ---------------------------------------------------------------------------
 # Main handler
 # ---------------------------------------------------------------------------
-async def handler(payload: dict) -> dict:
+async def handler(**payload) -> dict:
     """
     Main generation handler.
 
@@ -245,7 +245,9 @@ async def handler(payload: dict) -> dict:
             "errors": [...]   # only present if non-fatal warnings occurred
         }
     """
-    job_input = payload.get("input", {})
+    # SDK passes payload as kwargs — reconstruct dict and extract "input"
+    payload_dict = dict(payload)
+    job_input = payload_dict.get("input", payload_dict)
 
     # Support both "workflow_json" (Vast style) and "workflow" (RunPod style)
     workflow = job_input.get("workflow_json") or job_input.get("workflow")
