@@ -362,6 +362,8 @@ worker_config = WorkerConfig(
     model_server_port=int(COMFY_HOST.split(":")[-1]) if ":" in COMFY_HOST else 18188,
     model_log_file=MODEL_LOG_FILE,
 
+    model_healthcheck_url=f"http://{COMFY_HOST}/system_stats",
+    
     handlers=[
         # Lightweight ping benchmark — satisfies SDK requirement, no junk images
         HandlerConfig(
